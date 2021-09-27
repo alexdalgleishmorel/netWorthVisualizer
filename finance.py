@@ -63,15 +63,6 @@ class Asset:
             self.marketValue = shares*self.currentPrice
             self.gainLossD = (self.marketValue)-(self.shares*self.averageCost)
             self.gainLossP = (self.gainLossD/(self.shares*self.averageCost))*100
-            
-            # Creating
-            #count = 0
-            #purchaseDataTuples = []
-            #for dateValue in datesArray:
-               # purchaseDataTuples.append((dateValue, priceArray[0]))
-                #count+=1
-                
-            #self.dateValueList = purchaseDataTuples
         
         else:
             # User doesn't have any holdings of this currency
