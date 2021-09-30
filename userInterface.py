@@ -26,7 +26,6 @@ class AssetIcon:
         self.box = round_rectangle(100, 225+counter, 1170, 275+counter)
         self.xRange = (100, 1170)
         self.yRange = (225+counter, 275+counter)
-        print("y range for {0} is {1} - {2}".format(asset.name, 225+counter, 275+counter))
         self.name = menuCanvas.create_text(175, 250+counter, font=("Impact", 25), text=asset.name, fill="white")
         self.marketValueTitle = menuCanvas.create_text((755, 215+counter), font=("Impact", 10),
              text="Market Value", fill="white")
@@ -54,7 +53,6 @@ class AssetIcon:
         menuCanvas.tag_bind(self.marketValue, '<ButtonPress-1>', self.clicked)
     
     def clicked(self, event):
-        print(event)
         self.asset.showHistory()
 
 class ScrollableFrame(tk.Frame):
@@ -105,6 +103,13 @@ def createMenu(initialize):
     menuCanvas.create_text((10, 30), anchor=W, font=("Impact", 25), text=title, fill="white")
     menuCanvas.create_text((535, 100), anchor=W, font=("Impact", 15), text="Real Time Net Worth:", fill="white")
     menuCanvas.create_text((450, 150), anchor=W, font=("Impact", 50), text="${:.2f} CAD".format(globals.netWorth), fill="green")
+    if globals.gainLossD < 0:
+        menuCanvas.create_text(610, 195, font=("Impact", 15),
+                    text="{0} ({1}%)".format("{0:.2f}".format(globals.gainLossD), "{0:.2f}".format(globals.gainLossP)), fill="red")
+    else:
+        menuCanvas.create_text(610, 195, font=("Impact", 15),
+                    text="+{0} (+{1}%)".format("{0:.2f}".format(globals.gainLossD), "{0:.2f}".format(globals.gainLossP)), fill="green")
+    
     menuCanvas.create_text((1100, 20), anchor=W, font=("Impact", 10), text=scrollInstruct, fill="grey")
 
 
