@@ -65,6 +65,7 @@ class Asset:
             
             self.shares = shares
             # Calling the calculate book value method and associating the returned value with asset's book value
+            print(self.name)
             self.bookValue = calculateNetBookValue(dataframe)
             self.averageCost = self.bookValue/self.shares
             self.marketValue = shares*self.currentPrice
@@ -112,8 +113,10 @@ def calculateNetBookValue(dataframe):
                 sum += buy
                 buyDateCount += 1
                 lastBuy += 1
+        print("sum*sell price: {0} - sale*sellprice: {1}".format(sum, sale))
         sum = sum*sellPrice - (sale*sellPrice)
         bookValue += sum
+        print(bookValue)
         sellDateCount += 1
         sellPriceCount += 1
 
@@ -129,6 +132,8 @@ def calculateNetBookValue(dataframe):
             sum = buy*dataframe['Price'][counter]
             bookValue += sum
             counter+=1
+
+    print(bookValue)
     
     return bookValue
         
@@ -234,7 +239,6 @@ def main():
     globals.initialize()
 
     createAssets()
-    print("CAD stocks:")
     for asset in globals.assetListCAD:
         globals.netWorth += asset.marketValue
         globals.bookValue += asset.bookValue
@@ -256,11 +260,13 @@ def main():
     while (dataLog_sheet.cell(row=rowToWrite, column=1).value != None):
         rowToWrite += 1
     
-    dataLog_sheet.cell(row=rowToWrite, column=1).value = date.today()
-    dataLog_sheet.cell(row=rowToWrite, column=2).value = globals.bookValue
-    dataLog_sheet.cell(row=rowToWrite, column=3).value = globals.netWorth
-
-    dataLogWorkbook.save(DATALOG_LOCATION)
+    if (dataLog_sheet.cell(row=rowToWrite-1, column=1).value.date() != date.today()):
+        print("Logging daily history...")
+        dataLog_sheet.cell(row=rowToWrite, column=1).value = date.today()
+        dataLog_sheet.cell(row=rowToWrite, column=2).value = globals.bookValue
+        dataLog_sheet.cell(row=rowToWrite, column=3).value = globals.netWorth
+        
+        dataLogWorkbook.save(DATALOG_LOCATION)
 
 
     # Display user interface
