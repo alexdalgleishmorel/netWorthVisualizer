@@ -8,8 +8,15 @@ from datetime import date
 import math
 import userInterface as interface
 import globals as globals
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import time
+import openpyxl
 
-EXCEL_FILE_LOCATION = r"C:\Users\alexd\OneDrive\Desktop\Financial Projects\holdings.xlsx"
+hostName = "localhost"
+serverPort = 8080
+
+EXCEL_FILE_LOCATION = r"C:\Users\alexd\OneDrive\Desktop\Financial Projects\NetWorth_FinancialProject\holdings.xlsx"
+DATALOG_LOCATION = r"C:\Users\alexd\OneDrive\Desktop\Financial Projects\NetWorth_FinancialProject\dataLog.xlsx"
 
 # This is a class that creates asset objects, which can be a cryptocurrency or stock specified
 # by the user
@@ -210,11 +217,11 @@ def createAssets():
             bank = Asset(ticker, ticker, "CAD", dataframe["Bank"], None, None, None)
             globals.assetListCAD.append(bank)
             bank.marketValue = dataframe["Bank"]['Chequing'][0] + dataframe["Bank"]['Savings'][0]
+            bank.bookValue = bank.marketValue
             continue
 
         assetDataframe = dataframe[ticker]
         sharesArray, priceArray, datesArray = processPurchaseData(assetDataframe)
-        print(assetDataframe['Convert from USD?'][0])
         if assetDataframe['Convert from USD?'][0] == 'yes':
             globals.assetListUSD.append(Asset(ticker, ticker, "USD", assetDataframe, sharesArray, priceArray, datesArray))
         else:
@@ -229,14 +236,65 @@ def main():
     createAssets()
     print("CAD stocks:")
     for asset in globals.assetListCAD:
-        print(asset.name)
         globals.netWorth += asset.marketValue
-        print(globals.netWorth)
+        globals.bookValue += asset.bookValue
 
     for asset in globals.assetListUSD:
-        print(asset.name)
         globals.netWorth += asset.marketValue*get_current_price("CAD=X")
+        globals.bookValue += asset.bookValue*get_current_price("CAD=X")
+
+    # Calculate net gain/loss
+    globals.gainLossD = (globals.netWorth)-(globals.bookValue)
+    globals.gainLossP = (globals.gainLossD/(globals.bookValue))*100
+
+    # Log landmark of bookvalue, networth and date into dataLog excel sheet
+    dataLogWorkbook = openpyxl.load_workbook(DATALOG_LOCATION)
+
+    dataLog_sheet = dataLogWorkbook.active
+
+    rowToWrite = 2
+    while (dataLog_sheet.cell(row=rowToWrite, column=1).value != None):
+        rowToWrite += 1
     
-    interface.createMenu(True)
+    dataLog_sheet.cell(row=rowToWrite, column=1).value = date.today()
+    dataLog_sheet.cell(row=rowToWrite, column=2).value = globals.bookValue
+    dataLog_sheet.cell(row=rowToWrite, column=3).value = globals.netWorth
+
+    dataLogWorkbook.save(DATALOG_LOCATION)
+
+
+    # Display user interface
+    #interface.createMenu(True)
+
+    """
+    
+    if __name__ == "__main__":        
+        webServer = HTTPServer((hostName, serverPort), MyServer)
+        print("Server started http://%s:%s" % (hostName, serverPort))
+        
+        try:
+            webServer.serve_forever()
+        except KeyboardInterrupt:
+            pass
+        
+        webServer.server_close()
+        print("Server stopped.")
+
+        """
+
+
+class MyServer(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-type", "text/html")
+        self.end_headers()
+        self.wfile.write(bytes("<html><head><title>https://pythonbasics.org</title></head>", "utf-8"))
+        self.wfile.write(bytes("<p>Request: %s</p>" % self.path, "utf-8"))
+        self.wfile.write(bytes("<body>", "utf-8"))
+
+        # CREATE METHOD TO UPDATE NETWORTH AND CALL IT HERE
+
+        self.wfile.write(bytes("<p>Overall Net Worth: ${0:.2f} CAD</p>".format(globals.netWorth), "utf-8"))
+        self.wfile.write(bytes("</body></html>", "utf-8"))
 
 main()
