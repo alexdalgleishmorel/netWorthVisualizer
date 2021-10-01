@@ -1,6 +1,7 @@
 # https://blog.quantinsti.com/stock-market-data-analysis-python/ for the yfinance and plotting
 # information, this is what's used to visualize the data
 
+import sys
 import pandas as pd
 import yfinance
 import matplotlib.pyplot as plt
@@ -268,9 +269,9 @@ def main():
         
         dataLogWorkbook.save(DATALOG_LOCATION)
 
-
-    # Display user interface
-    #interface.createMenu(True)
+    if len(sys.argv) > 1:
+        # Display user interface
+        interface.createMenu(True)
 
     """
     
