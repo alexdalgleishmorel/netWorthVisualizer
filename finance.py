@@ -66,7 +66,8 @@ class Asset:
             
             self.shares = shares
             # Calling the calculate book value method and associating the returned value with asset's book value
-            print(self.name)
+            if self.shares == 0:
+                return
             self.bookValue = calculateNetBookValue(dataframe)
             self.averageCost = self.bookValue/self.shares
             self.marketValue = shares*self.currentPrice
@@ -238,16 +239,20 @@ def createAssets():
         if ticker == 'Bank':
             bank = Asset(ticker, ticker, "CAD", dataframe["Bank"], None, None, None)
             globals.assetListCAD.append(bank)
-            bank.marketValue = dataframe["Bank"]['Chequing'][0] + dataframe["Bank"]['Savings'][0]
+            bank.marketValue = dataframe["Bank"]['Chequing'][0] + dataframe["Bank"]['Savings'][0] + dataframe["Bank"]['TFSA CAD CASH'][0] + dataframe["Bank"]['TFSA USD CASH'][0]*get_current_price("CAD=X")
             bank.bookValue = bank.marketValue
             continue
 
         assetDataframe = dataframe[ticker]
         sharesArray, priceArray, datesArray = processPurchaseData(assetDataframe)
         if assetDataframe['Convert from USD?'][0] == 'yes':
-            globals.assetListUSD.append(Asset(ticker, ticker, "USD", assetDataframe, sharesArray, priceArray, datesArray))
+            asset = Asset(ticker, ticker, "USD", assetDataframe, sharesArray, priceArray, datesArray)
+            if asset.shares != 0:
+                globals.assetListUSD.append(Asset(ticker, ticker, "USD", assetDataframe, sharesArray, priceArray, datesArray))
         else:
-            globals.assetListCAD.append(Asset(ticker, ticker, "CAD", assetDataframe, sharesArray, priceArray, datesArray))
+            asset = Asset(ticker, ticker, "CAD", assetDataframe, sharesArray, priceArray, datesArray)
+            if asset.shares != 0:
+                globals.assetListCAD.append(Asset(ticker, ticker, "CAD", assetDataframe, sharesArray, priceArray, datesArray))
 
 # This is the main function that executes the overall functionality of the program
 def main():
