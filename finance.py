@@ -86,6 +86,7 @@ class Asset:
 
     def showHistory(self):
         if self.name == "Bank":
+            plotNetWorth()
             return
         plotAdjClose(self.name)
 
@@ -114,10 +115,8 @@ def calculateNetBookValue(dataframe):
                 sum += buy
                 buyDateCount += 1
                 lastBuy += 1
-        print("sum*sell price: {0} - sale*sellprice: {1}".format(sum, sale))
         sum = sum*sellPrice - (sale*sellPrice)
         bookValue += sum
-        print(bookValue)
         sellDateCount += 1
         sellPriceCount += 1
 
@@ -133,8 +132,6 @@ def calculateNetBookValue(dataframe):
             sum = buy*dataframe['Price'][counter]
             bookValue += sum
             counter+=1
-
-    print(bookValue)
     
     return bookValue
         
@@ -183,7 +180,7 @@ def plotAdjClose(assetName):
     data = yfinance.download(assetToPlot.ticker, '2019-01-01', todays_date)
     
     # Plot adjusted close price data
-    data['Adj Close'].plot(label = "ADA Price")
+    data['Adj Close'].plot(label = "{0} Price".format(assetToPlot.ticker))
 
     if assetToPlot.userHolds:
         # Show purchase points on graph
@@ -205,6 +202,25 @@ def plotAdjClose(assetName):
     
     # Show the plot
     plt.show()
+
+def plotNetWorth():
+    dataframe = pd.read_excel (r'{0}'.format(DATALOG_LOCATION), sheet_name = "Financial History")
+
+    plt.plot(dataframe['Date'], dataframe['Book'], label="Book Value")
+    plt.plot(dataframe['Date'], dataframe['Net Wrth'], label="Net Worth")
+
+    # Define the label for the title of the figure
+    plt.title("Net Worth vs Book Value", fontsize=16)
+    
+    # Define the labels for x-axis and y-axis
+    plt.ylabel('Value in $CAD', fontsize=14)
+    plt.xlabel('Time', fontsize=14)
+    
+    # Plot the grid lines
+    plt.grid(which="major", color='k', linestyle='-.', linewidth=0.5)
+
+    plt.show()
+
 
 # This function asks the user for a ticker of a stock to add to their list of assets and then generates
 # an asset object (see Asset class), including user holdings info if it exists on the Excel sheet
@@ -243,10 +259,12 @@ def main():
     for asset in globals.assetListCAD:
         globals.netWorth += asset.marketValue
         globals.bookValue += asset.bookValue
+        print("{0}: {1} shares".format(asset.name, asset.shares))
 
     for asset in globals.assetListUSD:
         globals.netWorth += asset.marketValue*get_current_price("CAD=X")
         globals.bookValue += asset.bookValue*get_current_price("CAD=X")
+        print("{0}: {1} shares".format(asset.name, asset.shares))
 
     # Calculate net gain/loss
     globals.gainLossD = (globals.netWorth)-(globals.bookValue)
