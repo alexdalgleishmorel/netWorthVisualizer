@@ -78,6 +78,11 @@ class ScrollableFrame(tk.Frame):
         menuCanvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
+def netWorthClicked(event):
+    for asset in globals.assetListCAD:
+        if asset.name == "Bank":
+            asset.showHistory()
+
 def createMenu(initialize):
     if initialize:
         global menuGui, gameSize, playType
@@ -102,7 +107,9 @@ def createMenu(initialize):
 
     menuCanvas.create_text((10, 30), anchor=W, font=("Impact", 25), text=title, fill="white")
     menuCanvas.create_text((535, 100), anchor=W, font=("Impact", 15), text="Real Time Net Worth:", fill="white")
-    menuCanvas.create_text((450, 150), anchor=W, font=("Impact", 50), text="${:.2f} CAD".format(globals.netWorth), fill="green")
+    netWorthNum = menuCanvas.create_text((450, 150), anchor=W, font=("Impact", 50), 
+            text="${:.2f} CAD".format(globals.netWorth), fill="green")
+    menuCanvas.tag_bind(netWorthNum, '<ButtonPress-1>', netWorthClicked)
     if globals.gainLossD < 0:
         menuCanvas.create_text(610, 195, font=("Impact", 15),
                     text="{0} ({1}%)".format("{0:.2f}".format(globals.gainLossD), "{0:.2f}".format(globals.gainLossP)), fill="red")
