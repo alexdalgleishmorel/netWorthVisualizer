@@ -29,14 +29,14 @@ class Asset:
         self.ticker = ticker
         self.currency = currency
 
-        if self.ticker != "Bank":
+        if self.ticker != "Bank" and self.ticker != "cadCASH":
             self.currentPrice = get_current_price(ticker)
         else:
             self.currentPrice = None
 
         # If the user has the asset in excel, then this segment of the code will execute to calculate
         # certain metrics concerning their asset and initialize asset attributes with the correct values
-        if not dataframe.empty and self.ticker != "Bank":
+        if not dataframe.empty and self.ticker != "Bank" and self.ticker != "cadCASH":
             self.userHolds = True
             self.sharesList = sharesArray
             self.priceList = priceArray
@@ -238,9 +238,13 @@ def createAssets():
         ticker = sheet
         if ticker == 'Bank':
             bank = Asset(ticker, ticker, "CAD", dataframe["Bank"], None, None, None)
+            cashCAD = Asset("cadCASH", "cadCASH", "CAD", dataframe["Bank"], None, None, None)
             globals.assetListCAD.append(bank)
-            bank.marketValue = dataframe["Bank"]['Chequing'][0] + dataframe["Bank"]['Savings'][0] + dataframe["Bank"]['TFSA CAD CASH'][0] + dataframe["Bank"]['TFSA USD CASH'][0]*get_current_price("CAD=X")
+            globals.assetListCAD.append(cashCAD)
+            bank.marketValue = dataframe["Bank"]['Chequing'][0] + dataframe["Bank"]['Savings'][0]
+            cashCAD.marketValue = dataframe["Bank"]['TFSA CAD CASH'][0] + dataframe["Bank"]['TFSA USD CASH'][0]*get_current_price("CAD=X")
             bank.bookValue = bank.marketValue
+            cashCAD.bookValue = cashCAD.marketValue
             continue
 
         assetDataframe = dataframe[ticker]
