@@ -21,6 +21,20 @@ class AssetIcon:
             self.currency = menuCanvas.create_text(275, 250+counter, font=("Impact", 25),
                 text="{0}".format(asset.currency), fill="cyan3")
             return
+        if asset.name == "cadCASH":
+            self.box = round_rectangle(750, 225, 1170, 275)
+            self.xRange = (0, 0)
+            self.yRange = (0, 0)
+            self.name = menuCanvas.create_text(840, 250, font=("Impact", 25), text="TFSA CASH", fill="white")
+            self.marketValueTitle = menuCanvas.create_text((1115, 215), font=("Impact", 10),
+                text="Market Value", fill="white")
+            self.marketValue = menuCanvas.create_text(1115, 250, font=("Impact", 25),
+                text="${:.2f}".format(asset.marketValue), fill="cyan3")
+            self.currencyTitle = menuCanvas.create_text((975, 215), font=("Impact", 10),
+                text="Currency", fill="white")
+            self.currency = menuCanvas.create_text(975, 250, font=("Impact", 25),
+                text="{0}".format(asset.currency), fill="cyan3")
+            return
 
 
         self.box = round_rectangle(100, 225+counter, 1170, 275+counter)
@@ -108,7 +122,7 @@ def createMenu(initialize):
     menuCanvas.create_text((10, 30), anchor=W, font=("Impact", 25), text=title, fill="white")
     menuCanvas.create_text((535, 100), anchor=W, font=("Impact", 15), text="Real Time Net Worth:", fill="white")
     netWorthNum = menuCanvas.create_text((450, 150), anchor=W, font=("Impact", 50), 
-            text="${:.2f} CAD".format(globals.netWorth), fill="green")
+            text="${:.2f} CAD".format(globals.netWorth), fill="cyan")
     menuCanvas.tag_bind(netWorthNum, '<ButtonPress-1>', netWorthClicked)
     if globals.gainLossD < 0:
         menuCanvas.create_text(610, 195, font=("Impact", 15),
@@ -137,7 +151,8 @@ def displayAssets():
     for asset in globals.assetListCAD:
         newIcon = AssetIcon(asset, counter)
         globals.assetIcons.append(newIcon)
-        counter += 100
+        if asset.name != "cadCASH":
+            counter += 100
 
     for asset in globals.assetListUSD:
         newIcon = AssetIcon(asset, counter)
