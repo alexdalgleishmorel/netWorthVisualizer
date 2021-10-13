@@ -12,12 +12,15 @@ import globals as globals
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import time
 import openpyxl
+import pathlib
 
 hostName = "localhost"
 serverPort = 8080
 
-EXCEL_FILE_LOCATION = r"C:\Users\alexd\OneDrive\Desktop\Financial Projects\NetWorth_FinancialProject\holdings.xlsx"
-DATALOG_LOCATION = r"C:\Users\alexd\OneDrive\Desktop\Financial Projects\NetWorth_FinancialProject\dataLog.xlsx"
+HOLDINGS = r"\holdings.xlsx"
+DATALOG = r"\dataLog.xlsx"
+EXCEL_FILE_LOCATION = str(pathlib.Path(__file__).parent.resolve())+HOLDINGS
+DATALOG_LOCATION = str(pathlib.Path(__file__).parent.resolve())+DATALOG
 
 # This is a class that creates asset objects, which can be a cryptocurrency or stock specified
 # by the user
@@ -305,6 +308,8 @@ def main():
     if len(sys.argv) > 1:
         # Display user interface
         interface.createMenu(True)
+
+    print(pathlib.Path(__file__).parent.resolve())
 
     """
     
