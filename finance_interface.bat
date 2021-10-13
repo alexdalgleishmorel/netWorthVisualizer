@@ -1,0 +1,1 @@
+C:\Users\alexd\AppData\Local\Programs\Python\Python39\python.exe "C:\Users\alexd\OneDrive\Desktop\Financial Projects\NetWorth_FinancialProject\finance_interface.py"
