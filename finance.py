@@ -178,10 +178,12 @@ def plotAdjClose(assetName):
 
 
     todays_date = date.today()
-    data = yfinance.download(assetToPlot.ticker, '2019-01-01', todays_date)
+    data = yfinance.download(assetToPlot.ticker, '2015-01-01', todays_date)
     
     # Plot adjusted close price data
     data['Adj Close'].plot(label = "{0} Price".format(assetToPlot.ticker))
+
+    plt.style.use('dark_background')
 
     if assetToPlot.userHolds:
         # Show purchase points on graph
@@ -207,6 +209,8 @@ def plotAdjClose(assetName):
 def plotNetWorth():
     dataframe = pd.read_excel (r'{0}'.format(DATALOG_LOCATION), sheet_name = "Financial History")
 
+    plt.style.use('dark_background')
+
     plt.plot(dataframe['Date'], dataframe['Book'], label="Book Value")
     plt.plot(dataframe['Date'], dataframe['Net Wrth'], label="Net Worth")
 
@@ -219,6 +223,8 @@ def plotNetWorth():
     
     # Plot the grid lines
     plt.grid(which="major", color='k', linestyle='-.', linewidth=0.5)
+
+    plt.legend()
 
     plt.show()
 
