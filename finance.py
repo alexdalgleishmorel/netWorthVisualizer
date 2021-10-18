@@ -142,8 +142,10 @@ def calculateNetBookValue(dataframe):
 
 def get_current_price(symbol):
     ticker = yfinance.Ticker(symbol)
-    todays_data = ticker.history(period='1d')
-    return todays_data['Close'][0]
+    #todays_data = ticker.history(period='1d')
+    #return todays_data['Close'][0]
+    data = ticker.history()
+    return (data.tail(1)['Close'].iloc[0])
 
 def processPurchaseData(dataframe):
     sharesArray = []
