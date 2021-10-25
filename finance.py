@@ -13,6 +13,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import time
 import openpyxl
 import pathlib
+import speculation
 
 hostName = "localhost"
 serverPort = 8080
@@ -256,6 +257,7 @@ def createAssets():
             cashCAD.marketValue = dataframe["Bank"]['TFSA CAD CASH'][0] + dataframe["Bank"]['TFSA USD CASH'][0]*get_current_price("CAD=X")
             bank.bookValue = bank.marketValue
             cashCAD.bookValue = cashCAD.marketValue
+            globals.totalCash = bank.bookValue + cashCAD.bookValue
             continue
 
         assetDataframe = dataframe[ticker]
