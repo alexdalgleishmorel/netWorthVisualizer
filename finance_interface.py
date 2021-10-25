@@ -1,343 +1,243 @@
-# https://blog.quantinsti.com/stock-market-data-analysis-python/ for the yfinance and plotting
-# information, this is what's used to visualize the data
-
-import sys
-import pandas as pd
-import yfinance
-import matplotlib.pyplot as plt
-from datetime import date
-import math
-import userInterface as interface
+import tkinter as tk
+from tkinter import *
 import globals as globals
-from http.server import BaseHTTPRequestHandler, HTTPServer
-import time
-import openpyxl
-import pathlib
+import speculation
 
-hostName = "localhost"
-serverPort = 8080
+class AssetIcon:
+    def __init__(self, asset, counter):
+        global menuCanvas
+        self.asset = asset
 
-HOLDINGS = r"\holdings.xlsx"
-DATALOG = r"\dataLog.xlsx"
-EXCEL_FILE_LOCATION = str(pathlib.Path(__file__).parent.resolve())+HOLDINGS
-DATALOG_LOCATION = str(pathlib.Path(__file__).parent.resolve())+DATALOG
-
-# This is a class that creates asset objects, which can be a cryptocurrency or stock specified
-# by the user
-class Asset:
-
-    # This method is executed each time a new Asset object is created
-    def __init__(self, assetName, ticker, currency, dataframe, sharesArray, priceArray, datesArray):
-        self.name = assetName
-        self.ticker = ticker
-        self.currency = currency
-
-        if self.ticker != "Bank" and self.ticker != "cadCASH":
-            self.currentPrice = get_current_price(ticker)
-        else:
-            self.currentPrice = None
-
-        # If the user has the asset in excel, then this segment of the code will execute to calculate
-        # certain metrics concerning their asset and initialize asset attributes with the correct values
-        if not dataframe.empty and self.ticker != "Bank" and self.ticker != "cadCASH":
-            self.userHolds = True
-            self.sharesList = sharesArray
-            self.priceList = priceArray
-            self.datesList = datesArray
-            
-            # Summing together all the purchased shares
-            count = 0
-            shares = 0
-            for share in sharesArray:
-                if math.isnan(share):
-                    break
-                shares += share
-                count += 1
-                count = 0
-            
-            self.sellPrices = []
-            self.sellDates = []
-            # Subtracting from the total shares the amount of shares that have been sold
-            for share in dataframe['Shares Sold']:
-                if math.isnan(share):
-                    break
-                # Adding the sell prices and dates as attributes of asset to be graphed later
-                self.sellPrices.append(dataframe['Sell Price'][count])
-                self.sellDates.append(dataframe['Sell Date'][count])
-                shares -= share
-                count += 1
-            
-            self.shares = shares
-            # Calling the calculate book value method and associating the returned value with asset's book value
-            if self.shares == 0:
-                return
-            self.bookValue = calculateNetBookValue(dataframe)
-            self.averageCost = self.bookValue/self.shares
-            self.marketValue = shares*self.currentPrice
-            self.gainLossD = (self.marketValue)-(self.shares*self.averageCost)
-            self.gainLossP = (self.gainLossD/(self.shares*self.averageCost))*100
-        
-        else:
-            # User doesn't have any holdings of this currency
-            self.userHolds = False
-            self.sharesList = None
-            self.priceList = None
-            self.datesList = None
-            self.shares = None
-            self.bookValue = None
-            self.averageCost = None
-            self.marketValue = None
-
-    def showHistory(self):
-        if self.name == "Bank":
-            plotNetWorth()
+        if asset.name == "Bank":
+            self.box = round_rectangle(100, 225+counter, 500, 275+counter)
+            self.xRange = (0, 0)
+            self.yRange = (0, 0)
+            self.name = menuCanvas.create_text(140, 250+counter, font=("Impact", 25), text=asset.name, fill="white")
+            self.marketValueTitle = menuCanvas.create_text((415, 215+counter), font=("Impact", 10),
+                text="Market Value", fill="white")
+            self.marketValue = menuCanvas.create_text(415, 250+counter, font=("Impact", 25),
+                text="${:.2f}".format(asset.marketValue), fill="cyan3")
+            self.currencyTitle = menuCanvas.create_text((275, 215+counter), font=("Impact", 10),
+                text="Currency", fill="white")
+            self.currency = menuCanvas.create_text(275, 250+counter, font=("Impact", 25),
+                text="{0}".format(asset.currency), fill="cyan3")
             return
-        plotAdjClose(self.name)
+        if asset.name == "cadCASH":
+            self.box = round_rectangle(750, 225, 1170, 275)
+            self.xRange = (0, 0)
+            self.yRange = (0, 0)
+            self.name = menuCanvas.create_text(840, 250, font=("Impact", 25), text="TFSA CASH", fill="white")
+            self.marketValueTitle = menuCanvas.create_text((1115, 215), font=("Impact", 10),
+                text="Market Value", fill="white")
+            self.marketValue = menuCanvas.create_text(1115, 250, font=("Impact", 25),
+                text="${:.2f}".format(asset.marketValue), fill="cyan3")
+            self.currencyTitle = menuCanvas.create_text((975, 215), font=("Impact", 10),
+                text="Currency", fill="white")
+            self.currency = menuCanvas.create_text(975, 250, font=("Impact", 25),
+                text="{0}".format(asset.currency), fill="cyan3")
+            return
 
 
-def calculateNetBookValue(dataframe):
-    sellDateCount, sellPriceCount, bookValue = 0, 0, 0
-    lastBuy = -1
-    for sale in dataframe['Shares Sold']:
-        if math.isnan(sale):
-            break
-        # Get the sell date to cross reference for the buys
-        sellDate = dataframe['Sell Date'][sellDateCount]
-        sellPrice = dataframe['Sell Price'][sellPriceCount]
-        # Sum all the buys up to the sell date
-        sum = 0
-        buyDateCount = 0
-        for buy in dataframe['Shares']:
-            if math.isnan(buy):
-                break
-            elif dataframe['Date'][buyDateCount] >= sellDate:
-                break
-            elif buyDateCount <= lastBuy:
-                buyDateCount += 1
-                continue
+        self.box = round_rectangle(100, 225+counter, 1170, 275+counter)
+        self.xRange = (100, 1170)
+        self.yRange = (225+counter, 275+counter)
+        self.name = menuCanvas.create_text(175, 250+counter, font=("Impact", 25), text=asset.name, fill="white")
+        
+        # Adding prospector button
+        prospect = menuCanvas.create_text((270, 250+counter), anchor=W, font=("Impact", 10), text="Prospect", fill="pink")
+        menuCanvas.tag_bind(prospect, '<ButtonPress-1>', self.prospect)
+        
+        self.marketValueTitle = menuCanvas.create_text((755, 215+counter), font=("Impact", 10),
+             text="Market Value", fill="white")
+        self.marketValue = menuCanvas.create_text(755, 250+counter, font=("Impact", 25),
+         text="${:.2f}".format(asset.marketValue), fill="cyan3")
+        self.currencyTitle = menuCanvas.create_text((385, 215+counter), font=("Impact", 10),
+             text="Currency", fill="white")
+        self.currency = menuCanvas.create_text(385, 250+counter, font=("Impact", 25),
+         text="{0}".format(asset.currency), fill="cyan3")
+        if self.asset.name != "Bank":
+            self.averageCostTitle = menuCanvas.create_text((555, 215+counter), font=("Impact", 10),
+             text="Average Cost", fill="white")
+            self.averageCost = menuCanvas.create_text(555, 250+counter, font=("Impact", 25), text="${:.2f}".format(asset.averageCost), fill="cyan3")
+            self.gainLossTitle = menuCanvas.create_text((1045, 215+counter), font=("Impact", 10),
+             text="Net Gain/Loss", fill="white")
+            if asset.gainLossD < 0:
+                self.gainLossD = menuCanvas.create_text(1045, 250+counter, font=("Impact", 25),
+                 text="{0} ({1}%)".format("{0:.2f}".format(asset.gainLossD), "{0:.2f}".format(asset.gainLossP)), fill="red")
             else:
-                sum += buy
-                buyDateCount += 1
-                lastBuy += 1
-        sum = sum*sellPrice - (sale*sellPrice)
-        bookValue += sum
-        sellDateCount += 1
-        sellPriceCount += 1
+                self.gainLossD = menuCanvas.create_text(1045, 250+counter, font=("Impact", 25),
+                 text="+{0} (+{1}%)".format("{0:.2f}".format(asset.gainLossD), "{0:.2f}".format(asset.gainLossP)), fill="green")
 
-    lastBuy+=1
+        menuCanvas.tag_bind(self.box, '<ButtonPress-1>', self.clicked)
+        menuCanvas.tag_bind(self.name, '<ButtonPress-1>', self.clicked)
+        menuCanvas.tag_bind(self.marketValue, '<ButtonPress-1>', self.clicked)
+    
+    def clicked(self, event):
+        self.asset.showHistory()
+    
+    def prospect(self, event):
+        purchaseProspector(self.asset)
+
+class ScrollableFrame(tk.Frame):
+    def __init__(self, container, *args, **kwargs):
+
+        global menuCanvas
+
+        super().__init__(container, *args, **kwargs)
+        scrollbar = tk.Scrollbar(self, orient="vertical", command=menuCanvas.yview)
+        self.scrollable_frame = tk.Frame(menuCanvas)
+
+        self.scrollable_frame.bind(
+            "<Configure>",
+            lambda e: menuCanvas.configure(
+                scrollregion=menuCanvas.bbox("all")
+            )
+        )
+
+        menuCanvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+
+        menuCanvas.configure(yscrollcommand=scrollbar.set)
+
+        menuCanvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+
+def netWorthClicked(event):
+    for asset in globals.assetListCAD:
+        if asset.name == "Bank":
+            asset.showHistory()
+
+def createMenu(initialize):
+    if initialize:
+        global menuGui
+        menuGui = tk.Tk(className="finance visualizer by Alex Dalgleish-Morel")
+        
+        menuGui.geometry("1280x720")
+        menuGui.configure(bg='black')
+        
+        # Populating GUI with cyan canvas
+        global menuCanvas
+        scrollCoords = (0,0, (len(globals.assetListCAD)+len(globals.assetListUSD)+len(globals.prospectList))*150,
+         (len(globals.assetListCAD)+len(globals.assetListUSD)+len(globals.prospectList))*150)
+        menuCanvas = tk.Canvas(menuGui, bg='black', height=720, width=1250, scrollregion=scrollCoords)
+
+        frame = ScrollableFrame(menuGui)
+
+        title = "Financial Visualizer"
+        #clickInstruct = "Click an icon to see some dope visuals of your buys/sells"
+        scrollInstruct = "Click arrows to scroll"
+        #frame.scrollable_frame.canvas.create_text((640, 30), anchor=W, font=("Impact", 25), text=title, fill="red")
+
+
+    menuCanvas.create_text((10, 30), anchor=W, font=("Impact", 25), text=title, fill="white")
+    menuCanvas.create_text((535, 100), anchor=W, font=("Impact", 15), text="Real Time Net Worth:", fill="white")
+    netWorthNum = menuCanvas.create_text((450, 150), anchor=W, font=("Impact", 50), 
+            text="${:.2f} CAD".format(globals.netWorth), fill="cyan")
+    menuCanvas.tag_bind(netWorthNum, '<ButtonPress-1>', netWorthClicked)
+    if globals.gainLossD < 0:
+        menuCanvas.create_text(610, 195, font=("Impact", 15),
+                    text="{0} ({1}%)".format("{0:.2f}".format(globals.gainLossD), "{0:.2f}".format(globals.gainLossP)), fill="red")
+    else:
+        menuCanvas.create_text(610, 195, font=("Impact", 15),
+                    text="+{0} (+{1}%)".format("{0:.2f}".format(globals.gainLossD), "{0:.2f}".format(globals.gainLossP)), fill="green")
+    
+    menuCanvas.create_text((1100, 20), anchor=W, font=("Impact", 10), text=scrollInstruct, fill="grey")
+
+    displayAssets()
+
+    frame.pack()
+    menuGui.mainloop()
+
+def round_rectangle(x1, y1, x2, y2, r=25, **kwargs):    
+    points = (x1+r, y1, x1+r, y1, x2-r, y1, x2-r, y1, x2, y1, x2, y1+r, x2, y1+r, x2, y2-r, x2, y2-r, x2, y2, x2-r, y2, x2-r, y2, x1+r, y2, x1+r, y2, x1, y2, x1, y2-r, x1, y2-r, x1, y1+r, x1, y1+r, x1, y1)
+    global menuCanvas
+    return menuCanvas.create_polygon(points, smooth=True, fill="black", outline="white")
+
+def displayAssets():
     counter = 0
-    for buy in dataframe['Shares']:
-        if math.isnan(buy):
-            break
-        if counter < lastBuy:
-            counter+=1
-            continue
-        else:
-            sum = buy*dataframe['Price'][counter]
-            bookValue += sum
-            counter+=1
-    
-    return bookValue
-        
+    spacing = 100
 
-def get_current_price(symbol):
-    ticker = yfinance.Ticker(symbol)
-    todays_data = ticker.history(period='1d')
-    return todays_data['Close'][0]
-
-def processPurchaseData(dataframe):
-    sharesArray = []
-    for shareValues in dataframe['Shares']:
-        if math.isnan(shareValues):
-            break
-        sharesArray.append(shareValues)
-        
-    priceArray = []
-    for priceValues in dataframe['Price']:
-        if math.isnan(priceValues):
-            break
-        priceArray.append(priceValues)
-        
-    datesArray = []
-    for dateValues in dataframe['Date']:
-        if pd.isnull(dateValues):
-            break
-        datesArray.append(dateValues)
-
-    return sharesArray, priceArray, datesArray
-
-def plotAdjClose(assetName):
-    # First we must find the right asset within the user's asset list
-    assetToPlot = None
     for asset in globals.assetListCAD:
-        if asset.name == assetName:
-            assetToPlot = asset
-            break
-    if assetToPlot == None:
-        for asset in globals.assetListUSD:
-            if asset.name == assetName:
-                assetToPlot = asset
-                break
-
-
-    todays_date = date.today()
-    data = yfinance.download(assetToPlot.ticker, '2015-01-01', todays_date)
-    
-    # Plot adjusted close price data
-    data['Adj Close'].plot(label = "{0} Price".format(assetToPlot.ticker))
-
-    plt.style.use('dark_background')
-
-    if assetToPlot.userHolds:
-        # Show purchase points on graph
-        plt.scatter(assetToPlot.datesList, assetToPlot.priceList, marker='o', color="green", label = "Purchases")
-        # Show sell points on graph
-        plt.scatter(assetToPlot.sellDates, assetToPlot.sellPrices, marker='o', color="red", label = "Sales")
-
-    plt.legend()
-
-    # Define the label for the title of the figure
-    plt.title("Adjusted Close Price of {0}".format(assetToPlot.name), fontsize=16)
-    
-    # Define the labels for x-axis and y-axis
-    plt.ylabel('Price', fontsize=14)
-    plt.xlabel('Year', fontsize=14)
-    
-    # Plot the grid lines
-    plt.grid(which="major", color='k', linestyle='-.', linewidth=0.5)
-    
-    # Show the plot
-    plt.show()
-
-def plotNetWorth():
-    dataframe = pd.read_excel (r'{0}'.format(DATALOG_LOCATION), sheet_name = "Financial History")
-
-    plt.style.use('dark_background')
-
-    plt.plot(dataframe['Date'], dataframe['Book'], label="Book Value")
-    plt.plot(dataframe['Date'], dataframe['Net Wrth'], label="Net Worth")
-
-    # Define the label for the title of the figure
-    plt.title("Net Worth vs Book Value", fontsize=16)
-    
-    # Define the labels for x-axis and y-axis
-    plt.ylabel('Value in $CAD', fontsize=14)
-    plt.xlabel('Time', fontsize=14)
-    
-    # Plot the grid lines
-    plt.grid(which="major", color='k', linestyle='-.', linewidth=0.5)
-
-    plt.legend()
-
-    plt.show()
-
-
-# This function asks the user for a ticker of a stock to add to their list of assets and then generates
-# an asset object (see Asset class), including user holdings info if it exists on the Excel sheet
-def createAssets():
-    try:
-        dataframe = pd.read_excel (r'{0}'.format(EXCEL_FILE_LOCATION), sheet_name = None)
-    except:
-        print("You don't have any purchase history within an excel file")
-        dataframe = pd.DataFrame({'A' : []})
-        globals.prospectList.append(Asset(ticker, ticker, "later", dataframe, None, None, None))
-        return
-
-    for sheet in dataframe:
-        ticker = sheet
-        if ticker == 'Bank':
-            bank = Asset(ticker, ticker, "CAD", dataframe["Bank"], None, None, None)
-            cashCAD = Asset("cadCASH", "cadCASH", "CAD", dataframe["Bank"], None, None, None)
-            globals.assetListCAD.append(bank)
-            globals.assetListCAD.append(cashCAD)
-            bank.marketValue = dataframe["Bank"]['Chequing'][0] + dataframe["Bank"]['Savings'][0]
-            cashCAD.marketValue = dataframe["Bank"]['TFSA CAD CASH'][0] + dataframe["Bank"]['TFSA USD CASH'][0]*get_current_price("CAD=X")
-            bank.bookValue = bank.marketValue
-            cashCAD.bookValue = cashCAD.marketValue
-            continue
-
-        assetDataframe = dataframe[ticker]
-        sharesArray, priceArray, datesArray = processPurchaseData(assetDataframe)
-        if assetDataframe['Convert from USD?'][0] == 'yes':
-            asset = Asset(ticker, ticker, "USD", assetDataframe, sharesArray, priceArray, datesArray)
-            if asset.shares != 0:
-                globals.assetListUSD.append(Asset(ticker, ticker, "USD", assetDataframe, sharesArray, priceArray, datesArray))
-        else:
-            asset = Asset(ticker, ticker, "CAD", assetDataframe, sharesArray, priceArray, datesArray)
-            if asset.shares != 0:
-                globals.assetListCAD.append(Asset(ticker, ticker, "CAD", assetDataframe, sharesArray, priceArray, datesArray))
-
-# This is the main function that executes the overall functionality of the program
-def main():
-    # Creating a globally accessible list that will contain all the stocks the user has declared
-    # to have positions in or wants to track
-    globals.initialize()
-
-    createAssets()
-    for asset in globals.assetListCAD:
-        globals.netWorth += asset.marketValue
-        globals.bookValue += asset.bookValue
-        print("{0}: {1} shares".format(asset.name, asset.shares))
+        newIcon = AssetIcon(asset, counter)
+        globals.assetIcons.append(newIcon)
+        if asset.name != "cadCASH":
+            counter += 100
 
     for asset in globals.assetListUSD:
-        globals.netWorth += asset.marketValue*get_current_price("CAD=X")
-        globals.bookValue += asset.bookValue*get_current_price("CAD=X")
-        print("{0}: {1} shares".format(asset.name, asset.shares))
+        newIcon = AssetIcon(asset, counter)
+        globals.assetIcons.append(newIcon)
+        counter += 100
 
-    # Calculate net gain/loss
-    globals.gainLossD = (globals.netWorth)-(globals.bookValue)
-    globals.gainLossP = (globals.gainLossD/(globals.bookValue))*100
 
-    # Log landmark of bookvalue, networth and date into dataLog excel sheet
-    dataLogWorkbook = openpyxl.load_workbook(DATALOG_LOCATION)
+def purchaseProspector(asset):
+    global prospectGui
+    global prospectAsset
+    prospectAsset = asset
+    prospectGui = tk.Tk(className="prospector window")
 
-    dataLog_sheet = dataLogWorkbook.active
+    title = asset.name+" prospector"
+    avlbCash = "Current Available Cash"
 
-    rowToWrite = 2
-    while (dataLog_sheet.cell(row=rowToWrite, column=1).value != None):
-        rowToWrite += 1
+    global prospectCanvas
+    prospectCanvas = tk.Canvas(prospectGui, bg='black', height=720, width=1250)
+
+    prospectCanvas.create_text((500, 150), anchor=W, font=("Impact", 25), text=title, fill="cyan")
+
+    prospectCanvas.create_text((500, 250), anchor=W, font=("Impact", 20), text=avlbCash, fill="cyan")
+    prospectCanvas.create_text((560, 275), anchor=W, font=("Impact", 15), text="${0:.2f} CAD".format(globals.totalCash), fill="green")
+
+    global currentAC
+    prospectCanvas.create_text((100, 200), anchor=W, font=("Impact", 20), text="average cost set to", fill="white")
+    currentAC = prospectCanvas.create_text((140, 225), anchor=W, font=("Impact", 15), text="${0:.2f} CAD".format(asset.averageCost), fill="cyan")
+    editACbutton = prospectCanvas.create_text((115, 245), anchor=W, font=("Impact", 10), text="click to edit average cost".format(globals.totalCash), fill="white")
+    prospectCanvas.tag_bind(editACbutton, '<ButtonPress-1>', editACclicked)
+    prospectCanvas.tag_bind(currentAC, '<ButtonPress-1>', editACclicked)
+
+    prospectGui.geometry("1280x720")
+    prospectGui.configure(bg='black')
+
+    bottomframe = Frame(prospectGui, bg='black')
+    bottomframe.pack( side = BOTTOM )
+
+    global moneySlider
+    moneySlider = Scale(bottomframe, from_=0, to=globals.totalCash, orient=HORIZONTAL, command=sliderChanged, length=1000)
+    moneySlider.grid(column=1, row=5, sticky="we")
+
+    global moneyToSpend, averageCost
+    moneySpendTitle = prospectCanvas.create_text((550, 380), anchor=W, font=("Impact", 25), text="it would cost", fill="white")
+    moneyToSpend = prospectCanvas.create_text((530, 420), anchor=W, font=("Impact", 30), text="$ CAD", fill="green")
+    acTitle = prospectCanvas.create_text((460, 460), anchor=W, font=("Impact", 25), text="to reach an average cost of", fill="white")
+    averageCost = prospectCanvas.create_text((550, 500), anchor=W, font=("Impact", 30), text="$ CAD", fill="cyan")
+    prospectCanvas.create_text((440, 540), anchor=W, font=("Impact", 25), text="at the current market price of", fill="white")
+    prospectCanvas.create_text((550, 580), anchor=W, font=("Impact", 30), text="$ {0:.2f} CAD".format(prospectAsset.currentPrice), fill="green")
+
+    prospectCanvas.create_text((330, 655), anchor=W, font=("Impact", 20), text="move slider below to adjust your target average cost", fill="white")
+
+    moneySlider.pack()
+
+    prospectCanvas.pack()
+
+    prospectGui.mainloop()
+
+def sliderChanged(event):
+    global prospectCanvas
+    print(moneySlider.get())
+    prospectCanvas.itemconfig(moneyToSpend, text="${0:.2f} CAD".format(moneySlider.get()))
+    prospectCanvas.itemconfig(averageCost, text="${0:.2f} CAD".format(speculation.calculateAverageCost(prospectAsset, moneySlider.get())))
+
+def editACclicked(event):
+    master = tk.Tk()
+    tk.Label(master, text="New Average Cost").grid(row=0)
     
-    if (dataLog_sheet.cell(row=rowToWrite-1, column=1).value.date() != date.today()):
-        print("Logging daily history...")
-        dataLog_sheet.cell(row=rowToWrite, column=1).value = date.today()
-        dataLog_sheet.cell(row=rowToWrite, column=2).value = globals.bookValue
-        dataLog_sheet.cell(row=rowToWrite, column=3).value = globals.netWorth
-        
-        dataLogWorkbook.save(DATALOG_LOCATION)
-        
-    interface.createMenu(True)
-
-    print(pathlib.Path(__file__).parent.resolve())
-
-    """
+    global e1
+    e1 = tk.Entry(master)
     
-    if __name__ == "__main__":        
-        webServer = HTTPServer((hostName, serverPort), MyServer)
-        print("Server started http://%s:%s" % (hostName, serverPort))
-        
-        try:
-            webServer.serve_forever()
-        except KeyboardInterrupt:
-            pass
-        
-        webServer.server_close()
-        print("Server stopped.")
+    e1.grid(row=0, column=1)
+    
+    tk.Button(master, text='Quit', command=master.destroy).grid(row=3, column=0, sticky=tk.W, pady=4)
+    tk.Button(master, text='Update', command=updateAC).grid(row=3, column=1, sticky=tk.W, pady=4)
+    tk.mainloop()
 
-        """
-
-
-class MyServer(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.send_header("Content-type", "text/html")
-        self.end_headers()
-        self.wfile.write(bytes("<html><head><title>https://pythonbasics.org</title></head>", "utf-8"))
-        self.wfile.write(bytes("<p>Request: %s</p>" % self.path, "utf-8"))
-        self.wfile.write(bytes("<body>", "utf-8"))
-
-        # CREATE METHOD TO UPDATE NETWORTH AND CALL IT HERE
-
-        self.wfile.write(bytes("<p>Overall Net Worth: ${0:.2f} CAD</p>".format(globals.netWorth), "utf-8"))
-        self.wfile.write(bytes("</body></html>", "utf-8"))
-
-main()
+def updateAC():
+    global prospectAsset
+    prospectAsset.averageCost = float(e1.get())
+    prospectCanvas.itemconfig(currentAC, text="${0:.2f} CAD".format(prospectAsset.averageCost))
