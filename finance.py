@@ -45,6 +45,8 @@ class Asset:
             self.sharesList = sharesArray
             self.priceList = priceArray
             self.datesList = datesArray
+
+            self.buyMagnitudes, self.sellMagnitudes = createMagnitudes(dataframe)
             
             # Summing together all the purchased shares
             count = 0
@@ -169,6 +171,27 @@ def processPurchaseData(dataframe):
 
     return sharesArray, priceArray, datesArray
 
+
+def createMagnitudes(dataframe):
+    buyMagnitudes = []
+    sellMagnitudes = []
+
+    count = 0
+    for buy in dataframe['Shares']:
+        if math.isnan(buy):
+            break
+        buyMagnitudes.append((buy*dataframe['Price'][count])/10)
+        count += 1
+    
+    count = 0
+    for sell in dataframe['Shares Sold']:
+        if math.isnan(sell):
+            break
+        sellMagnitudes.append((sell*dataframe['Sell Price'][count])/10)
+        count += 1
+
+    return buyMagnitudes, sellMagnitudes
+
 def plotAdjClose(assetName):
     # First we must find the right asset within the user's asset list
     assetToPlot = None
@@ -189,13 +212,13 @@ def plotAdjClose(assetName):
     # Plot adjusted close price data
     data['Adj Close'].plot(label = "{0} Price".format(assetToPlot.ticker))
 
-    plt.style.use('dark_background')
+    plt.axhline(y=assetToPlot.averageCost, color='cyan', label='Average Cost')
 
     if assetToPlot.userHolds:
         # Show purchase points on graph
-        plt.scatter(assetToPlot.datesList, assetToPlot.priceList, marker='o', color="green", label = "Purchases")
+        plt.scatter(x=assetToPlot.datesList, y=assetToPlot.priceList, s=assetToPlot.buyMagnitudes, alpha=0.5, marker='o', color="green", label = "Purchases")
         # Show sell points on graph
-        plt.scatter(assetToPlot.sellDates, assetToPlot.sellPrices, marker='o', color="red", label = "Sales")
+        plt.scatter(x=assetToPlot.sellDates, y=assetToPlot.sellPrices, s=assetToPlot.sellMagnitudes, alpha=0.5, marker='o', color="red", label = "Sales")
 
     plt.legend()
 
@@ -214,8 +237,6 @@ def plotAdjClose(assetName):
 
 def plotNetWorth():
     dataframe = pd.read_excel (r'{0}'.format(DATALOG_LOCATION), sheet_name = "Financial History")
-
-    plt.style.use('dark_background')
 
     plt.plot(dataframe['Date'], dataframe['Book'], label="Book Value")
     plt.plot(dataframe['Date'], dataframe['Net Wrth'], label="Net Worth")
