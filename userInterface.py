@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import *
 import globals as globals
+import speculation
 
 class AssetIcon:
     def __init__(self, asset, counter):
@@ -41,6 +42,11 @@ class AssetIcon:
         self.xRange = (100, 1170)
         self.yRange = (225+counter, 275+counter)
         self.name = menuCanvas.create_text(175, 250+counter, font=("Impact", 25), text=asset.name, fill="white")
+        
+        # Adding prospector button
+        prospect = menuCanvas.create_text((270, 250+counter), anchor=W, font=("Impact", 10), text="Prospect", fill="pink")
+        menuCanvas.tag_bind(prospect, '<ButtonPress-1>', self.prospect)
+        
         self.marketValueTitle = menuCanvas.create_text((755, 215+counter), font=("Impact", 10),
              text="Market Value", fill="white")
         self.marketValue = menuCanvas.create_text(755, 250+counter, font=("Impact", 25),
@@ -68,6 +74,9 @@ class AssetIcon:
     
     def clicked(self, event):
         self.asset.showHistory()
+    
+    def prospect(self, event):
+        purchaseProspector(self.asset)
 
 class ScrollableFrame(tk.Frame):
     def __init__(self, container, *args, **kwargs):
@@ -99,7 +108,7 @@ def netWorthClicked(event):
 
 def createMenu(initialize):
     if initialize:
-        global menuGui, gameSize, playType
+        global menuGui
         menuGui = tk.Tk(className="finance visualizer by Alex Dalgleish-Morel")
         
         menuGui.geometry("1280x720")
@@ -133,7 +142,6 @@ def createMenu(initialize):
     
     menuCanvas.create_text((1100, 20), anchor=W, font=("Impact", 10), text=scrollInstruct, fill="grey")
 
-
     displayAssets()
 
     frame.pack()
@@ -158,3 +166,89 @@ def displayAssets():
         newIcon = AssetIcon(asset, counter)
         globals.assetIcons.append(newIcon)
         counter += 100
+
+
+def purchaseProspector(asset):
+    global prospectGui
+    global prospectAsset
+    prospectAsset = asset
+    prospectGui = tk.Tk(className="prospector window")
+
+    title = asset.name+" prospector"
+    avlbCash = "Current Available Cash"
+
+    global prospectCanvas
+    prospectCanvas = tk.Canvas(prospectGui, bg='black', height=720, width=1250)
+
+    prospectCanvas.create_text((500, 150), anchor=W, font=("Impact", 25), text=title, fill="cyan")
+
+    prospectCanvas.create_text((500, 250), anchor=W, font=("Impact", 20), text=avlbCash, fill="cyan")
+    prospectCanvas.create_text((560, 275), anchor=W, font=("Impact", 15), text="${0:.2f} CAD".format(globals.totalCash), fill="green")
+
+    global currentAC
+    prospectCanvas.create_text((100, 200), anchor=W, font=("Impact", 20), text="average cost set to", fill="white")
+    currentAC = prospectCanvas.create_text((140, 225), anchor=W, font=("Impact", 15), text="${0:.2f} CAD".format(asset.averageCost), fill="cyan")
+    editACbutton = prospectCanvas.create_text((115, 245), anchor=W, font=("Impact", 10), text="click to edit average cost".format(globals.totalCash), fill="white")
+    prospectCanvas.tag_bind(editACbutton, '<ButtonPress-1>', editACclicked)
+    prospectCanvas.tag_bind(currentAC, '<ButtonPress-1>', editACclicked)
+
+    prospectGui.geometry("1280x720")
+    prospectGui.configure(bg='black')
+
+    bottomframe = Frame(prospectGui, bg='black')
+    bottomframe.pack( side = BOTTOM )
+
+    global moneySlider
+    moneySlider = Scale(bottomframe, from_=0, to=globals.totalCash, orient=HORIZONTAL, command=sliderChanged, length=1000)
+    moneySlider.grid(column=1, row=5, sticky="we")
+
+    global moneyToSpend, averageCost
+    moneySpendTitle = prospectCanvas.create_text((550, 380), anchor=W, font=("Impact", 25), text="it would cost", fill="white")
+    moneyToSpend = prospectCanvas.create_text((530, 420), anchor=W, font=("Impact", 30), text="$ CAD", fill="green")
+    acTitle = prospectCanvas.create_text((460, 460), anchor=W, font=("Impact", 25), text="to reach an average cost of", fill="white")
+    averageCost = prospectCanvas.create_text((550, 500), anchor=W, font=("Impact", 30), text="$ CAD", fill="cyan")
+    prospectCanvas.create_text((440, 540), anchor=W, font=("Impact", 25), text="at the current market price of", fill="white")
+    prospectCanvas.create_text((550, 580), anchor=W, font=("Impact", 30), text="$ {0:.2f} CAD".format(prospectAsset.currentPrice), fill="green")
+
+    prospectCanvas.create_text((330, 655), anchor=W, font=("Impact", 20), text="move slider below to adjust your target average cost", fill="white")
+
+    global bitcoinRatio, ethereumRatio
+    if (asset.name == "BTCC-B.TO"):
+        bitcoinRatio = speculation.convertBitcoin(asset)
+    if (asset.name == "ETHH.TO"):
+        ethereumRatio = speculation.convertEthereum(asset)
+
+    moneySlider.pack()
+
+    prospectCanvas.pack()
+
+    prospectGui.mainloop()
+
+def sliderChanged(event):
+    global prospectCanvas
+    prospectCanvas.itemconfig(moneyToSpend, text="${0:.2f} CAD".format(moneySlider.get()))
+    calculation = speculation.calculateAverageCost(prospectAsset, moneySlider.get())
+    if (prospectAsset.name == "BTCC-B.TO"):
+        prospectCanvas.itemconfig(averageCost, text="${0:.2f} CAD or ${1:.2f} CAD".format(calculation, calculation*bitcoinRatio))
+    elif (prospectAsset.name == "ETHH.TO"):
+        prospectCanvas.itemconfig(averageCost, text="${0:.2f} CAD or ${1:.2f} CAD".format(calculation, calculation*ethereumRatio))
+    else:
+        prospectCanvas.itemconfig(averageCost, text="${0:.2f} CAD".format(calculation))
+
+def editACclicked(event):
+    master = tk.Tk()
+    tk.Label(master, text="New Average Cost").grid(row=0)
+    
+    global e1
+    e1 = tk.Entry(master)
+    
+    e1.grid(row=0, column=1)
+    
+    tk.Button(master, text='Quit', command=master.destroy).grid(row=3, column=0, sticky=tk.W, pady=4)
+    tk.Button(master, text='Update', command=updateAC).grid(row=3, column=1, sticky=tk.W, pady=4)
+    tk.mainloop()
+
+def updateAC():
+    global prospectAsset
+    prospectAsset.averageCost = float(e1.get())
+    prospectCanvas.itemconfig(currentAC, text="${0:.2f} CAD".format(prospectAsset.averageCost))
