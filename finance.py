@@ -214,11 +214,25 @@ def plotAdjClose(assetName):
 
     plt.axhline(y=assetToPlot.averageCost, color='cyan', label='Average Cost')
 
+    buyPlotPoints = []
+    sellPlotPoints = []
+    count = 0
+    # Creating list of buy and sell prices that will be consistent with the plotted line
+    for buyPointDate in assetToPlot.datesList:
+        buyPlotPoints.append(data['Adj Close'][buyPointDate])
+        count += 1
+    count = 0
+    for sellPointDate in assetToPlot.sellDates:
+        sellPlotPoints.append(data['Adj Close'][sellPointDate])
+        count += 1
+
     if assetToPlot.userHolds:
         # Show purchase points on graph
-        plt.scatter(x=assetToPlot.datesList, y=assetToPlot.priceList, s=assetToPlot.buyMagnitudes, alpha=0.5, marker='o', color="green", label = "Purchases")
+        plt.scatter(x=assetToPlot.datesList, y=buyPlotPoints, s=assetToPlot.buyMagnitudes, alpha=0.5, marker='o', color="green", label = "Purchases")
+        #plt.scatter(x=assetToPlot.datesList, y=assetToPlot.priceList, s=assetToPlot.buyMagnitudes, alpha=0.5, marker='o', color="green", label = "Purchases")
         # Show sell points on graph
-        plt.scatter(x=assetToPlot.sellDates, y=assetToPlot.sellPrices, s=assetToPlot.sellMagnitudes, alpha=0.5, marker='o', color="red", label = "Sales")
+        plt.scatter(x=assetToPlot.sellDates, y=sellPlotPoints, s=assetToPlot.sellMagnitudes, alpha=0.5, marker='o', color="red", label = "Sales")
+        #plt.scatter(x=assetToPlot.sellDates, y=assetToPlot.sellPrices, s=assetToPlot.sellMagnitudes, alpha=0.5, marker='o', color="red", label = "Sales")
 
     plt.legend()
 
